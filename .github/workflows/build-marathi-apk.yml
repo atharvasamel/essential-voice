@@ -1,0 +1,86 @@
+# Personal fork build workflow, added 2026-09-23.
+name: Build Marathi English APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "gradle/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/build-marathi-apk.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marathi-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out your app
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Check out the pinned whisper.cpp source
+        uses: actions/checkout@v6
+        with:
+          repository: ggml-org/whisper.cpp
+          ref: 398997ed68095e39a6a0df3bc05c7dd880d0c607
+          path: whisper-src
+          persist-credentials: false
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.9"
+
+      - name: Accept Android SDK licences
+        shell: bash
+        run: |
+          set +o pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
+          set -o pipefail
+
+      - name: Install this project's Android build tools
+        shell: bash
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;34.0.0" \
+            "ndk;27.2.12479018" \
+            "cmake;3.22.1"
+
+      - name: Build the test APK
+        run: gradle :app:assembleDebug --no-daemon --max-workers=2 --stacktrace
+
+      - name: Verify and name the APK
+        shell: bash
+        run: |
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          mkdir -p apk-output
+          cp app/build/outputs/apk/debug/app-debug.apk \
+            apk-output/Essential-Voice-Marathi-Test.apk
+
+      - name: Upload the APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: Essential-Voice-Marathi-Test-${{ github.run_number }}
+          path: apk-output/Essential-Voice-Marathi-Test.apk
+          if-no-files-found: error
+          retention-days: 14

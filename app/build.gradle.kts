@@ -37,7 +37,8 @@ android {
         minSdk = 31
         targetSdk = 35
         versionCode = 8
-        versionName = "3.0"
+        // Personal fork modification (2026-09-23): identify this test build.
+        versionName = "3.0-marathi"
 
         // Where the app looks for news of a newer build. See Updater.kt.
         buildConfigField(

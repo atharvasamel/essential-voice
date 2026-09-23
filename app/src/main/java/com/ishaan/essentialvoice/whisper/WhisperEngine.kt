@@ -156,20 +156,18 @@ object WhisperEngine {
                 val p = ptr
                 if (p == 0L) return@withLock Result.failure(IllegalStateException("Model unloaded"))
 
-                // English, stated rather than detected, and stated as a
-                // constant rather than read from the setting. Every tier here
-                // is an `.en` build — see [ModelCatalog] — so English is not
-                // the language that happens to be chosen, it is the only one
-                // the loaded model has weights for. Passing the preference
-                // instead would let one stale pair of settings ask an
-                // English-only model for Hindi, which is not a worse transcript
-                // but a different alphabet. Non-English is Google's; the
-                // pairing is kept in [com.ishaan.essentialvoice.Prefs].
+                // Personal fork modification (2026-09-23): the selected mode
+                // supplies the source language and task. "auto" detects once
+                // per recording; translate=true requests English output.
+                // Use the full trained audio window for translation initially.
+                // Timing/accuracy of the shortened window needs phone testing.
                 val text = runCatching {
                     WhisperLib.nativeTranscribe(
-                        p, audio, threads, Languages.whisperCode(Languages.DEFAULT), false,
-                        tier.beamSize, tier.bestOf, 0.6f, VOCAB_PROMPT,
-                        audioCtx, singleSegment,
+                        p, audio, threads, tier.sourceLanguage, tier.translateToEnglish,
+                        tier.beamSize, tier.bestOf, 0.6f,
+                        if (tier.translateToEnglish) "" else VOCAB_PROMPT,
+                        if (tier.translateToEnglish) 0 else audioCtx,
+                        singleSegment,
                     )
                 }.getOrElse { return@withLock Result.failure(it) }
 

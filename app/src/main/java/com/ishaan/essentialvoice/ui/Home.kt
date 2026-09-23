@@ -4794,7 +4794,12 @@ internal fun TierCard(
                 // Nothing here says whether the model is downloaded: the
                 // buttons at the bottom already do, and an extra clause wrapped
                 // this line onto two at the width the cards are.
-                "${variant.sizeMb} MB   ·   ~${tier.waitLabel} FOR 10s OF SPEECH",
+                // Personal fork modification (2026-09-23): do not reuse the
+                // English benchmark as a claim about translation speed.
+                if (tier.translateToEnglish)
+                    "${variant.sizeMb} MB   ·   ENGLISH OUTPUT"
+                else
+                    "${variant.sizeMb} MB   ·   ~${tier.waitLabel} FOR 10s OF SPEECH",
                 type.label,
                 color = if (selected) EV.OnYellow.copy(alpha = 0.66f) else EV.InkMuted,
             )

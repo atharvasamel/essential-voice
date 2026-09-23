@@ -225,7 +225,10 @@ Java_com_ishaan_essentialvoice_whisper_WhisperLib_nativeTranscribe(
     if (language) {
         lang = env->GetStringUTFChars(language, nullptr);
         p.language = lang;
-        p.detect_language = (std::strcmp(lang, "auto") == 0);
+        // Personal fork modification (2026-09-23): "auto" already requests
+        // language detection. detect_language=true means detect ONLY and
+        // returns before text decoding, so keep it false for dictation.
+        p.detect_language = false;
     }
 
     const char *prompt = nullptr;

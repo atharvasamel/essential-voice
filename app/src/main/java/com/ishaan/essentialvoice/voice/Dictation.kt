@@ -639,6 +639,10 @@ object Dictation {
      */
     private fun startNoteProbe(ctx: Context) {
         probeJob?.cancel()
+        // Personal fork modification (2026-09-23): a two-second translation
+        // probe is unreliable and consumes a second decode. Translate only
+        // the completed recording in the speech-to-English modes.
+        if (Prefs.get(ctx).now.tier.translateToEnglish) return
         probeJob = scope.launch {
             repeat(PROBE_ATTEMPTS) { attempt ->
                 delay(if (attempt == 0) PROBE_AFTER_MS else PROBE_RETRY_MS)
@@ -688,13 +692,17 @@ object Dictation {
     private suspend fun handleTranscript(ctx: Context, text: String) {
         // "note ..." starts one; once the card is open everything lands in it
         // until it is closed.
-        val hit = NoteCommand.parse(text)
+        // Personal fork modification (2026-09-23): translated words are
+        // dictation, not spoken app commands. This prevents a translation
+        // beginning with "note", "task" or "record" from launching an action.
+        val translationMode = Prefs.get(ctx).now.tier.translateToEnglish
+        val hit = if (translationMode) null else NoteCommand.parse(text)
         // Checked before the note card, and after it is open the ask is
         // deliberately unreachable: with a note on screen every word belongs in
         // it, and a question that escaped into the network from inside a note
         // would be the worst kind of surprise. See AskCommand for why the
         // prefix is anchored.
-        val asAsk = if (cardOpen || !Features.GEMINI) null else AskCommand.parse(text)
+        val asAsk = if (translationMode || cardOpen || !Features.GEMINI) null else AskCommand.parse(text)
         when {
             text.isBlank() -> finish(PillView.State.ERROR, null)
             // The probe missed the word and the whole clip was decoded to find

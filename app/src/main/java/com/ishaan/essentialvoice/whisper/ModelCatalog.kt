@@ -1,7 +1,6 @@
 package com.ishaan.essentialvoice.whisper
 
 import android.content.Context
-import com.ishaan.essentialvoice.Prefs
 import java.io.File
 
 /**
@@ -26,49 +25,23 @@ data class ModelVariant(val fileName: String, val bytes: Long) {
 }
 
 /**
- * The quality toggle, expressed as four settings that were measured on this
- * phone rather than guessed.
- *
- * [millisPer10s] is the wall time whisper.cpp took on a CMF Phone 2 Pro for an
- * eleven-second clip of clear speech at four threads — the number the tier card
- * shows, so a tier's cost in waiting is as visible as its cost in bytes.
- *
- * Anything larger than `small` was tried and rejected on this hardware:
- * `medium.en-q5_0` spends 19.6s in the encoder alone and `large-v3-turbo-q5_0`
- * spends 32.6s, both fixed costs that no thread count or beam setting moves.
- * Neither is a dictation tool. Quantised `small.en-q5_1` was also slower than
- * fp16 here (7.1s against 5.8s): the Dimensity does fp16 natively, so
- * dequantising costs time and buys nothing but disk.
- *
- * ------------------------------------------------------ English only, on purpose
- *
- * Every tier names one file, and it is the `.en` build. There used to be a
- * multilingual variant beside each of them and it was removed rather than
- * defended: OpenAI trained these twice, once on English alone and once on
- * ninety-nine more languages in the *same* parameter budget, and at these sizes
- * the second training does not survive the split. `base` multilingual is around
- * 15-20% WER on Spanish and past 80% on Hindi — not "a little worse", unusable
- * — and `small`, the only tier that is arguable, still sits in the high
- * thirties on Hindi while costing 487MB and 5.8s per ten seconds of speech.
- *
- * There is no larger model to escape into: `medium.en-q5_0` spends 19.6s in the
- * encoder alone on this SoC and `large-v3-turbo-q5_0` 32.6s, both fixed costs
- * no thread count moves. And the phone already carries a recogniser that does
- * a hundred languages offline and instantly. So whisper listens in English, and
- * every other language is Google's — see [com.ishaan.essentialvoice.Prefs.setLanguage],
- * which keeps that pairing so no combination on screen can be a broken one.
+ * Personal fork modification (2026-09-23): add multilingual speech-to-English
+ * modes alongside the original English-only tiers. Translation timings have
+ * not been measured on the user's phone; zero means no measured timing.
  */
 data class QualityTier(
     val id: String,
     val label: String,
     val sub: String,
-    /** The `.en` model. whisper only ever listens in English; see above. */
+    /** The downloaded model used by this mode. */
     val model: ModelVariant,
     /** >1 selects beam search; 1 means greedy sampling. */
     val beamSize: Int,
     /** Candidates the sampler keeps. */
     val bestOf: Int,
     val millisPer10s: Int,
+    val sourceLanguage: String = "en",
+    val translateToEnglish: Boolean = false,
 ) {
     /** Human reading of [millisPer10s]: "1.5s", "6s". */
     val waitLabel: String
@@ -85,9 +58,34 @@ data class QualityTier(
 object ModelCatalog {
 
     const val BASE_URL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/"
-    const val DEFAULT_TIER_ID = "balanced"
+    const val DEFAULT_TIER_ID = "auto_english"
+    private val multilingualSmall = ModelVariant("ggml-small.bin", 487_601_967L)
 
     val tiers = listOf(
+        QualityTier(
+            id = "auto_english",
+            label = "Auto to English",
+            sub = "Speak English or Marathi. Detects the language and outputs English. " +
+                "Use a complete sentence; short or mixed speech can be misdetected.",
+            model = multilingualSmall,
+            beamSize = 5,
+            bestOf = 5,
+            millisPer10s = 0,
+            sourceLanguage = "auto",
+            translateToEnglish = true,
+        ),
+        QualityTier(
+            id = "marathi_english",
+            label = "Marathi to English",
+            sub = "For Marathi speech when automatic detection gets the language wrong. " +
+                "Uses the same download as Auto to English.",
+            model = multilingualSmall,
+            beamSize = 5,
+            bestOf = 5,
+            millisPer10s = 0,
+            sourceLanguage = "mr",
+            translateToEnglish = true,
+        ),
         QualityTier(
             id = "fast",
             label = "Fast",
@@ -127,7 +125,7 @@ object ModelCatalog {
         ),
     )
 
-    fun byId(id: String): QualityTier = tiers.firstOrNull { it.id == id } ?: tiers[1]
+    fun byId(id: String): QualityTier = tiers.firstOrNull { it.id == id } ?: tiers.first { it.id == DEFAULT_TIER_ID }
 
     fun dir(context: Context): File =
         File(context.filesDir, "models").apply { if (!exists()) mkdirs() }

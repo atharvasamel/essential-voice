@@ -165,14 +165,19 @@ object WhisperEngine {
                     WhisperLib.nativeTranscribe(
                         p, audio, threads, tier.sourceLanguage, tier.translateToEnglish,
                         tier.beamSize, tier.bestOf, 0.6f,
-                        if (tier.translateToEnglish) "" else VOCAB_PROMPT,
-                        if (tier.translateToEnglish) 0 else audioCtx,
+                        if (tier.isMultilingualMode) "" else VOCAB_PROMPT,
+                        if (tier.isMultilingualMode) 0 else audioCtx,
                         singleSegment,
                     )
                 }.getOrElse { return@withLock Result.failure(it) }
 
                 lastUsedAt = System.currentTimeMillis()
-                Result.success(text.trim())
+                // Personal fork addition, 2026-09-23: convert only Marathi
+                // script after transcription, preserving existing English text.
+                runCatching {
+                    if (tier.romanizeMarathi) MarathiRomanizer.romanize(text.trim())
+                    else text.trim()
+                }
             }
         }
 

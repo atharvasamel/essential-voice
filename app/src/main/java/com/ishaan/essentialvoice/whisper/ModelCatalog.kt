@@ -42,7 +42,11 @@ data class QualityTier(
     val millisPer10s: Int,
     val sourceLanguage: String = "en",
     val translateToEnglish: Boolean = false,
+    // Personal fork addition, 2026-09-23: transliteration after transcription.
+    val romanizeMarathi: Boolean = false,
 ) {
+    val isMultilingualMode: Boolean get() = translateToEnglish || romanizeMarathi
+
     /** Human reading of [millisPer10s]: "1.5s", "6s". */
     val waitLabel: String
         get() {
@@ -58,10 +62,36 @@ data class QualityTier(
 object ModelCatalog {
 
     const val BASE_URL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/"
-    const val DEFAULT_TIER_ID = "auto_english"
+    const val DEFAULT_TIER_ID = "roman_auto"
     private val multilingualSmall = ModelVariant("ggml-small.bin", 487_601_967L)
 
     val tiers = listOf(
+        QualityTier(
+            id = "roman_auto",
+            label = "Roman Marathi + English",
+            sub = "Auto-detects speech. Marathi is written in English letters; " +
+                "English text is kept. Mixed speech and spellings may need correction.",
+            model = multilingualSmall,
+            beamSize = 5,
+            bestOf = 5,
+            millisPer10s = 0,
+            sourceLanguage = "auto",
+            translateToEnglish = false,
+            romanizeMarathi = true,
+        ),
+        QualityTier(
+            id = "roman_marathi",
+            label = "Roman Marathi (fixed)",
+            sub = "Assumes Marathi speech if automatic detection struggles. " +
+                "Writes Marathi in English letters, without translating its meaning.",
+            model = multilingualSmall,
+            beamSize = 5,
+            bestOf = 5,
+            millisPer10s = 0,
+            sourceLanguage = "mr",
+            translateToEnglish = false,
+            romanizeMarathi = true,
+        ),
         QualityTier(
             id = "auto_english",
             label = "Auto to English",

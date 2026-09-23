@@ -16,6 +16,13 @@ specific language governing permissions and limitations under the License.
 THIRD-PARTY COMPONENTS
 ======================
 
+ICU4J 78.1 (added to the personal fork, 2026-09-23)
+    Unicode License V3 and the notices in its upstream LICENSE file.
+    Copyright (c) 2016-2025 Unicode, Inc.
+    https://github.com/unicode-org/icu/tree/release-78.1
+    Full license and third-party notices are included in the APK as
+    assets/licenses/icu4j-LICENSE.txt.
+
 whisper.cpp and ggml
     MIT License. Copyright (c) 2023-2024 The ggml authors.
     https://github.com/ggml-org/whisper.cpp

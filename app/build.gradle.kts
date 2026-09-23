@@ -36,9 +36,9 @@ android {
         applicationId = "com.ishaan.essentialvoice"
         minSdk = 31
         targetSdk = 35
-        versionCode = 8
+        versionCode = 9
         // Personal fork modification (2026-09-23): identify this test build.
-        versionName = "3.0-marathi"
+        versionName = "3.1-roman-marathi"
 
         // Where the app looks for news of a newer build. See Updater.kt.
         buildConfigField(
@@ -138,6 +138,9 @@ android {
 }
 
 dependencies {
+    // Personal fork addition: offline Devanagari-to-Latin text transforms.
+    implementation("com.ibm.icu:icu4j:78.1")
+    testImplementation("junit:junit:4.13.2")
     val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
     implementation(composeBom)
 

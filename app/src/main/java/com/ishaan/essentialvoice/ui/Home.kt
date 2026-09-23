@@ -4796,7 +4796,9 @@ internal fun TierCard(
                 // this line onto two at the width the cards are.
                 // Personal fork modification (2026-09-23): do not reuse the
                 // English benchmark as a claim about translation speed.
-                if (tier.translateToEnglish)
+                if (tier.romanizeMarathi)
+                    "${variant.sizeMb} MB   ·   MARATHI IN ENGLISH LETTERS"
+                else if (tier.translateToEnglish)
                     "${variant.sizeMb} MB   ·   ENGLISH OUTPUT"
                 else
                     "${variant.sizeMb} MB   ·   ~${tier.waitLabel} FOR 10s OF SPEECH",

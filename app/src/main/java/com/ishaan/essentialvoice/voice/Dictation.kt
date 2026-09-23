@@ -642,7 +642,7 @@ object Dictation {
         // Personal fork modification (2026-09-23): a two-second translation
         // probe is unreliable and consumes a second decode. Translate only
         // the completed recording in the speech-to-English modes.
-        if (Prefs.get(ctx).now.tier.translateToEnglish) return
+        if (Prefs.get(ctx).now.tier.isMultilingualMode) return
         probeJob = scope.launch {
             repeat(PROBE_ATTEMPTS) { attempt ->
                 delay(if (attempt == 0) PROBE_AFTER_MS else PROBE_RETRY_MS)
@@ -695,7 +695,7 @@ object Dictation {
         // Personal fork modification (2026-09-23): translated words are
         // dictation, not spoken app commands. This prevents a translation
         // beginning with "note", "task" or "record" from launching an action.
-        val translationMode = Prefs.get(ctx).now.tier.translateToEnglish
+        val translationMode = Prefs.get(ctx).now.tier.isMultilingualMode
         val hit = if (translationMode) null else NoteCommand.parse(text)
         // Checked before the note card, and after it is open the ask is
         // deliberately unreachable: with a note on screen every word belongs in
